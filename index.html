@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constructor de Consultas v3</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+
+        #sidebar {
+            width: 250px; /* Un poco más de espacio */
+            background-color: #ffffff;
+            border-right: 1px solid #dcdcdc;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sidebar h2 { margin-top: 0; text-align: center; color: #333; }
+
+        #report-list, #connection-list {
+            list-style-type: none;
+            padding: 0;
+            flex-grow: 1;
+            overflow-y: auto; /* Scroll si hay muchos informes */
+        }
+
+        #report-list li, #connection-list li {
+            background-color: var(--medium-gray);
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+        }
+        
+        .report-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            margin-left: 8px;
+        }
+
+        .sidebar-buttons button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            background-color: var(--primary-color);
+            color: white;
+            margin-top: 10px; /* Espacio entre botones */
+        }
+        
+        .sidebar-buttons button:hover { background-color: #0056b3; }
+
+        #db-connections-button {
+            background-color: var(--dark-gray);
+        }
+        #db-connections-button:hover {
+            background-color: #5a6268;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .query-builder {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 650px;
+        }
+        
+        #query-display { 
+            background-color: var(--light-gray);
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            margin-bottom: 20px;
+            min-height: 50px;
+            width: 100%; 
+            box-sizing: border-box; 
+            resize: vertical;
+            line-height: 1.5;
+        }
+        
+        .controls { display: flex; align-items: center; margin-bottom: 20px; }
+
+        .controls button {
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            line-height: 26px;
+        }
+        
+        #fields-container .field-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        #fields-container .field-number {
+            font-weight: bold;
+            background-color: var(--medium-gray);
+            padding: 8px 12px;
+            border-radius: 50%;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        #fields-container input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 45%;
+        }
+        
+        .footer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .footer-actions input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+
+        .footer-actions button {
+            padding: 10px 20px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .footer-actions button:hover { background-color: #218838; }
+
+        /* Estilos para el formulario de conexión a BD */
+        .connections-manager {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 500px;
+        }
+        .connections-manager h3 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        /* --- NUEVO ESTILO: Para el menú desplegable (select) --- */
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            background-color: white;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        
+        .connection-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .connection-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        #test-connection-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #save-connection-btn {
+            background-color: var(--success-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Informes</h2>
+        <ul id="report-list"></ul>
+        <h2 style="margin-top:30px;">Conexiones</h2>
+        <ul id="connection-list"></ul>
+        <div class="sidebar-buttons">
+            <button id="add-report-button">Agregar Informe</button>
+            <button id="db-connections-button">Agregar Conexión a Base de Datos</button>
+        </div>
+    </div>
+
+    <div id="main-content"></div>
+
+    <script>
+        const mainContent = document.getElementById('main-content');
+        const reportList = document.getElementById('report-list');
+        const addReportButton = document.getElementById('add-report-button');
+        const dbConnectionsButton = document.getElementById('db-connections-button');
+        const connectionList = document.getElementById('connection-list');
+
+        let savedReports = [];
+        let savedConnections = [];
+
+        function renderSidebar() {
+            reportList.innerHTML = ''; 
+            savedReports.forEach(report => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${report.name}</span>
+                    <div class="report-actions">
+                        <button class="edit-btn" data-id="${report.id}">✏️</button>
+                        <button class="delete-btn" data-id="${report.id}">🗑️</button>
+                    </div>
+                `;
+                reportList.appendChild(li);
+            });
+
+            // Render connections
+            connectionList.innerHTML = '';
+            savedConnections.forEach(conn => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${conn.name} (${conn.type})</span>
+                    <div class="report-actions">
+                        <button class="edit-conn-btn" data-id="${conn.id}">✏️</button>
+                        <button class="delete-conn-btn" data-id="${conn.id}">🗑️</button>
+                    </div>
+                `;
+                connectionList.appendChild(li);
+            });
+        }
+        
+        reportList.addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            if (!id) return;
+
+            if (e.target.classList.contains('delete-btn')) {
+                savedReports = savedReports.filter(report => report.id != id);
+                renderSidebar();
+                if (mainContent.querySelector('.query-builder')) { }
+            }
+
+            if (e.target.classList.contains('edit-btn')) {
+                const reportToEdit = savedReports.find(report => report.id == id);
+                savedReports = savedReports.filter(report => report.id != id);
+                openQueryBuilder(reportToEdit);
+            }
+        });
+
+        connectionList.addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            if (!id) return;
+
+            if (e.target.classList.contains('delete-conn-btn')) {
+                savedConnections = savedConnections.filter(conn => conn.id != id);
+                renderSidebar();
+            }
+
+            if (e.target.classList.contains('edit-conn-btn')) {
+                const connToEdit = savedConnections.find(conn => conn.id == id);
+                savedConnections = savedConnections.filter(conn => conn.id != id);
+                openConnectionsManager(connToEdit);
+            }
+        });
+
+        function updateQueryDisplay() {
+            const queryDisplay = document.getElementById('query-display');
+            if (!queryDisplay) return;
+            
+            let currentQuery = queryDisplay.value; 
+            let baseQuery = currentQuery.trim();
+            const lines = baseQuery.split('\n');
+
+            let stopIndex = lines.length;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().toUpperCase().startsWith('WHERE') || lines[i].trim().toUpperCase().startsWith('AND')) {
+                    stopIndex = i;
+                    break;
+                }
+            }
+            baseQuery = lines.slice(0, stopIndex).join('\n').trim();
+
+            const fieldsContainer = document.getElementById('fields-container');
+            const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+            let whereClause = '';
+
+            fieldRows.forEach((row, index) => {
+                const columnName = row.querySelector('.column-name').value.trim() || '...';
+                whereClause += `\n    ${index === 0 ? 'WHERE' : 'AND'} ${columnName} = [${index + 1}]`;
+            });
+
+            let newQuery = baseQuery;
+            if (fieldRows.length > 0) {
+                if (!newQuery.endsWith('\n')) {
+                    newQuery += '\n';
+                }
+                newQuery += whereClause.trim();
+            }
+            queryDisplay.value = newQuery;
+        }
+        
+        function openQueryBuilder(reportData = null) {
+            mainContent.innerHTML = `
+                <div class="query-builder">
+                    <textarea id="query-display" rows="5"></textarea>
+                    <div class="controls">
+                        <button id="add-field">+</button>
+                        <button id="remove-field">-</button>
+                        <span>Agregar campo</span>
+                    </div>
+                    <div id="fields-container"></div>
+                    <div class="footer-actions">
+                        <input type="text" id="report-name" placeholder="Nombre del Informe">
+                        <button id="save-button">Guardar</button>
+                    </div>
+                </div>
+            `;
+            
+            const fieldsContainer = document.getElementById('fields-container');
+            const reportNameInput = document.getElementById('report-name');
+            const queryDisplay = document.getElementById('query-display');
+            let fieldCounter = 0;
+
+            const addField = (fieldData = { column: '', label: '' }) => {
+                fieldCounter++;
+                const newField = document.createElement('div');
+                newField.classList.add('field-row');
+                newField.innerHTML = `
+                    <span class="field-number">${fieldCounter}</span>
+                    <input type="text" class="column-name" placeholder="ej: user_lastname" value="${fieldData.column}">
+                    <span class="equals">=</span>
+                    <input type="text" class="label-name" placeholder="ej: Apellido" value="${fieldData.label}">
+                `;
+                fieldsContainer.appendChild(newField);
+                newField.querySelector('.column-name').addEventListener('keyup', updateQueryDisplay);
+                newField.querySelector('.column-name').addEventListener('change', updateQueryDisplay); 
+            };
+
+            if (reportData) {
+                reportNameInput.value = reportData.name;
+                reportData.fields.forEach(field => addField(field));
+                queryDisplay.value = 'SELECT * FROM user';
+            } else {
+                queryDisplay.value = 'SELECT * FROM user';
+            }
+
+            queryDisplay.addEventListener('keyup', updateQueryDisplay);
+            queryDisplay.addEventListener('change', updateQueryDisplay);
+            updateQueryDisplay();
+
+            document.getElementById('add-field').addEventListener('click', () => {
+                addField();
+                updateQueryDisplay();
+            });
+            
+            document.getElementById('remove-field').addEventListener('click', () => {
+                if (fieldCounter > 0) {
+                    fieldsContainer.removeChild(fieldsContainer.lastChild);
+                    fieldCounter--;
+                    updateQueryDisplay();
+                }
+            });
+
+            document.getElementById('save-button').addEventListener('click', () => {
+                const reportName = reportNameInput.value;
+                if (!reportName) {
+                    alert('Por favor, dale un nombre a tu informe.');
+                    return;
+                }
+                const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+                const fields = [];
+                fieldRows.forEach(row => {
+                    fields.push({
+                        column: row.querySelector('.column-name').value,
+                        label: row.querySelector('.label-name').value
+                    });
+                });
+                savedReports.push({
+                    id: Date.now(),
+                    name: reportName,
+                    fields: fields
+                });
+                renderSidebar();
+                mainContent.innerHTML = '';
+            });
+        }
+        
+        function openConnectionsManager(connData = null) {
+            mainContent.innerHTML = `
+                <div class="connections-manager">
+                    <h3>Configurar Conexión a Base de Datos</h3>
+                    <div class="form-group">
+                        <label for="db-type">Tipo de Base de Datos</label>
+                        <select id="db-type">
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">Microsoft SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlite">SQLite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="db-host">Host</label>
+                        <input type="text" id="db-host" placeholder="ej: localhost" value="127.0.0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-port">Puerto</label>
+                        <input type="number" id="db-port" placeholder="ej: 5432" value="5432">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-user">Usuario</label>
+                        <input type="text" id="db-user" placeholder="ej: postgres">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-password">Contraseña</label>
+                        <input type="password" id="db-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-name">Nombre de la Base de Datos</label>
+                        <input type="text" id="db-name" placeholder="ej: mi_base_de_datos">
+                    </div>
+                    <div class="form-group">
+                        <label for="conn-name">Nombre de la Conexión</label>
+                        <input type="text" id="conn-name" placeholder="ej: Producción">
+                    </div>
+                    <div class="connection-actions">
+                        <button id="test-connection-btn">Probar Conexión</button>
+                        <button id="save-connection-btn">Guardar</button>
+                    </div>
+                </div>
+            `;
+
+            // Si editando, rellena los campos
+            if (connData) {
+                document.getElementById('db-type').value = connData.type;
+                document.getElementById('db-host').value = connData.host;
+                document.getElementById('db-port').value = connData.port;
+                document.getElementById('db-user').value = connData.user;
+                document.getElementById('db-password').value = connData.password;
+                document.getElementById('db-name').value = connData.dbname;
+                document.getElementById('conn-name').value = connData.name;
+            }
+
+            document.getElementById('test-connection-btn').addEventListener('click', () => {
+                alert('Probando conexión... (funcionalidad de ejemplo, no implementada)');
+            });
+
+            document.getElementById('save-connection-btn').addEventListener('click', () => {
+                const connName = document.getElementById('conn-name').value;
+                if (!connName) {
+                    alert('Por favor, dale un nombre a la conexión.');
+                    return;
+                }
+                const newConn = {
+                    id: Date.now(),
+                    name: connName,
+                    type: document.getElementById('db-type').value,
+                    host: document.getElementById('db-host').value,
+                    port: document.getElementById('db-port').value,
+                    user: document.getElementById('db-user').value,
+                    password: document.getElementById('db-password').value,
+                    dbname: document.getElementById('db-name').value
+                };
+                savedConnections.push(newConn);
+                renderSidebar();
+                mainContent.innerHTML = '';
+            });
+        }
+        
+        addReportButton.addEventListener('click', () => openQueryBuilder());
+        dbConnectionsButton.addEventListener('click', () => openConnectionsManager());
+
+        // Inicializa sidebar
+        renderSidebar();
+    </script>
+
+</body>
+</html>

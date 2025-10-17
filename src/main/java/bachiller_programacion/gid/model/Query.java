@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "query")
+@Table(name = "queries")
 public class Query {
-
+         
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -21,10 +21,18 @@ public class Query {
     @Column(columnDefinition = "JSON")
     private String fields;
 
-    @Column(nullable = false)
+    // Antes:
+    // @Column(nullable = false)
+    // private LocalDateTime createdAt;
+    //
+    // @Column(nullable = false)
+    // private LocalDateTime updatedAt;
+
+    // { changed code }
+    @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     // ====== Constructores ======
@@ -40,7 +48,7 @@ public class Query {
     }
 
     // ====== Getters y Setters ======
-
+    
     public Integer getId() {
         return id;
     }
@@ -87,6 +95,18 @@ public class Query {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // ====== Añadir métodos de ciclo de vida para timestamps ======
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
 
